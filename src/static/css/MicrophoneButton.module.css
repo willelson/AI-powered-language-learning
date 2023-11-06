@@ -1,0 +1,31 @@
+.button {
+  background: #4361ee;
+  color: white;
+  border-radius: 50%;
+  box-shadow: 0 0 0 0 rgba(0, 0, 0, 1);
+  margin: 16px;
+  height: calc(2em + 32px);
+  width: calc(2em + 32px);
+  transform: scale(1);
+}
+
+.pulse {
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 #4361ee70;
+  }
+
+  70% {
+    transform: scale(1);
+    box-shadow: 0 0 0 22px #4361ee00;
+  }
+
+  100% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 #4361ee00;
+  }
+}

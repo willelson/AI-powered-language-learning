@@ -3,7 +3,9 @@ import SpeechRecognition, {
   useSpeechRecognition,
 } from "react-speech-recognition";
 import "./static/css/App.css";
+
 import ChatBubble from "./components/ChatBubble";
+import MicrophoneButton from "./components/MicrophoneButton";
 
 function App() {
   const { transcript, resetTranscript } = useSpeechRecognition();
@@ -104,11 +106,11 @@ function App() {
       <div className="container messages">
         {messages && <div className="message-container">{messagesList}</div>}
       </div>
-      <div className="container chat-input">
-        <button onClick={handleListening}>
-          {isListening ? "Stop" : "Speak"}
-        </button>
-        {isListening ? "Listening........." : "Click to start Listening"}
+      <div className="container chat-input centered">
+        <MicrophoneButton
+          listening={isListening}
+          handleListening={handleListening}
+        />
       </div>
     </div>
   );
