@@ -1,0 +1,27 @@
+.container {
+  padding: 20px;
+}
+
+.application {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.application .messages {
+  flex: 1;
+}
+
+.message-container {
+  display: flex;
+  flex-direction: column;
+  padding: 12px 15vw;
+}
+
+.application .header {
+  border-bottom: 1px solid #d3d3d3;
+}
+.application .chat-input {
+  border-top: 1px solid #d3d3d3;
+}

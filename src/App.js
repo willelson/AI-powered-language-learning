@@ -2,7 +2,8 @@ import { useState, useEffect } from "react";
 import SpeechRecognition, {
   useSpeechRecognition,
 } from "react-speech-recognition";
-import "./App.css";
+import "./static/css/App.css";
+import ChatBubble from "./components/ChatBubble";
 
 function App() {
   const { transcript, resetTranscript } = useSpeechRecognition();
@@ -88,25 +89,26 @@ function App() {
 
   const messagesList = messages.map((msg) => {
     if (msg.role !== "system") {
-      return <li>{msg.content}</li>;
+      return (
+        <ChatBubble
+          alignment={msg.role === "assistant" ? "left" : "right"}
+          text={msg.content}
+        />
+      );
     }
   });
 
   return (
-    <div>
-      <div className="container">
+    <div className="application">
+      <div className="container header">ChatGPT</div>
+      <div className="container messages">
+        {messages && <div className="message-container">{messagesList}</div>}
+      </div>
+      <div className="container chat-input">
         <button onClick={handleListening}>
           {isListening ? "Stop" : "Speak"}
         </button>
         {isListening ? "Listening........." : "Click to start Listening"}
-      </div>
-      <div className="container">
-        {messages && (
-          <div>
-            <ol>{messagesList}</ol>
-            <button onClick={handleReset}>Reset</button>
-          </div>
-        )}
       </div>
     </div>
   );
