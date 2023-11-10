@@ -11,6 +11,7 @@ function App() {
   const { transcript, resetTranscript } = useSpeechRecognition();
   const [isListening, setIsListening] = useState(false);
   const [messages, setMessages] = useState([]);
+  const [utterance, setUtterance] = useState(null);
 
   useEffect(() => {
     setMessages([
@@ -20,6 +21,11 @@ function App() {
           "You are helping me practice conversational german at the A1 level",
       },
     ]);
+
+    const utterance = new SpeechSynthesisUtterance();
+    utterance.lang = "de";
+    utterance.voice = window.speechSynthesis.getVoices()[0];
+    setUtterance(utterance);
 
     return () => console.log("unmounted");
   }, []);
@@ -33,19 +39,22 @@ function App() {
   }
 
   const openAIRequest = async (message) => {
+    const body = JSON.stringify({
+      model: "gpt-3.5-turbo",
+      messages: [...messages, { role: "user", content: message }],
+    });
+
     const res = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${process.env.API_KEY}`,
+        Authorization: `Bearer ${process.env.REACT_APP_API_KEY}`,
       },
-      body: {
-        model: "gpt-3.5-turbo",
-        messages: [...messages, { role: "user", content: message }],
-      },
+      body,
     });
 
     const data = await res.json();
+
     const msg = data.choices[0].message;
     return msg;
   };
@@ -60,8 +69,9 @@ function App() {
       });
     } else {
       const userMessage = { role: "user", content: transcript };
-
       stopListening();
+      if (!transcript) return;
+
       const GPTmessage = await openAIRequest(transcript);
       setMessages([...messages, userMessage, GPTmessage]);
       playBackRecognition(GPTmessage.content);
@@ -71,21 +81,9 @@ function App() {
     setIsListening(false);
     SpeechRecognition.stopListening();
   };
-  const handleReset = () => {
-    stopListening();
-    resetTranscript();
-    setMessages([]);
-  };
 
   function playBackRecognition(message) {
-    let utterance = new SpeechSynthesisUtterance();
-    utterance.lang = "de";
-
-    // Set the text and voice of the utterance
     utterance.text = message;
-    utterance.voice = window.speechSynthesis.getVoices()[0];
-
-    // Speak the utterance
     window.speechSynthesis.speak(utterance);
   }
 
