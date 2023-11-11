@@ -24,11 +24,25 @@ function App() {
 
     const utterance = new SpeechSynthesisUtterance();
     utterance.lang = "de";
-    utterance.voice = window.speechSynthesis.getVoices()[0];
+    utterance.rate = 0.8;
+    utterance.voice = window.speechSynthesis
+      .getVoices()
+      .filter((voice) => voice.lang.startsWith("de"))[0];
     setUtterance(utterance);
 
     return () => console.log("unmounted");
   }, []);
+
+  useEffect(() => {
+    const getChatGPTResponse = async () => {
+      const GPTmessage = await openAIRequest(transcript);
+      setMessages([...messages, GPTmessage]);
+      playBackRecognition(GPTmessage.content);
+    };
+    if (messages.length > 0 && messages[messages.length - 1].role === "user") {
+      getChatGPTResponse();
+    }
+  }, [messages]);
 
   if (!SpeechRecognition.browserSupportsSpeechRecognition()) {
     return (
@@ -72,9 +86,7 @@ function App() {
       stopListening();
       if (!transcript) return;
 
-      const GPTmessage = await openAIRequest(transcript);
-      setMessages([...messages, userMessage, GPTmessage]);
-      playBackRecognition(GPTmessage.content);
+      setMessages([...messages, userMessage]);
     }
   };
   const stopListening = () => {
