@@ -14,13 +14,19 @@ function App() {
   const [utterance, setUtterance] = useState(null);
 
   useEffect(() => {
-    setMessages([
-      {
-        role: "system",
-        content:
-          "You are helping me practice conversational german at the A1 level",
-      },
-    ]);
+    const systemMessage = {
+      role: "system",
+      content:
+        "You are helping me practice conversational german at the A1 level",
+    };
+
+    const chatHistory = window.localStorage.getItem("chatHistory");
+    if (chatHistory) {
+      setMessages(JSON.parse(chatHistory));
+    } else {
+      setMessages([systemMessage]);
+    }
+    scrollToBottom();
 
     const utterance = new SpeechSynthesisUtterance();
     utterance.lang = "de";
@@ -36,8 +42,7 @@ function App() {
   useEffect(() => {
     const getChatGPTResponse = async () => {
       const GPTmessage = await openAIRequest(transcript);
-      setMessages([...messages, GPTmessage]);
-      playBackRecognition(GPTmessage.content);
+      addMessage(GPTmessage);
     };
     if (messages.length > 0 && messages[messages.length - 1].role === "user") {
       getChatGPTResponse();
@@ -47,10 +52,27 @@ function App() {
   if (!SpeechRecognition.browserSupportsSpeechRecognition()) {
     return (
       <div className="mircophone-container">
-        Browser is not Support Speech Recognition.
+        Browser does not Support Speech Recognition.
       </div>
     );
   }
+  const addMessage = (message) => {
+    const updatedMessage = [...messages, message];
+    window.localStorage.setItem("chatHistory", JSON.stringify(updatedMessage));
+
+    setMessages(updatedMessage);
+    playBackRecognition(message.content);
+    scrollToBottom();
+  };
+
+  const scrollToBottom = () => {
+    console.log("scrolling to bottom");
+    setTimeout(() => {
+      const element = document.getElementById("listOfMessages");
+      if (!element) return;
+      element.scrollIntoView({ block: "end", behavior: "smooth" });
+    }, 100);
+  };
 
   const openAIRequest = async (message) => {
     const body = JSON.stringify({
@@ -85,10 +107,10 @@ function App() {
       const userMessage = { role: "user", content: transcript };
       stopListening();
       if (!transcript) return;
-
-      setMessages([...messages, userMessage]);
+      addMessage(userMessage);
     }
   };
+
   const stopListening = () => {
     setIsListening(false);
     SpeechRecognition.stopListening();
@@ -114,7 +136,12 @@ function App() {
     <div className="application">
       <div className="container header">ChatGPT</div>
       <div className="container messages">
-        {messages && <div className="message-container">{messagesList}</div>}
+        {messages && (
+          <div className="message-container" id="listOfMessages">
+            {messagesList}
+            {/* <div id="anchor"></div> */}
+          </div>
+        )}
       </div>
       <div className="container chat-input centered">
         <MicrophoneButton

@@ -17,6 +17,7 @@
 
 .application .messages {
   flex: 1;
+  overflow-y: auto;
 }
 
 .message-container {
