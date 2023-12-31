@@ -13,18 +13,21 @@ function App() {
   const [messages, setMessages] = useState([]);
   const [utterance, setUtterance] = useState(null);
 
-  useEffect(() => {
-    const systemMessage = {
-      role: "system",
-      content:
-        "You are helping me practice conversational german at the A1 level",
-    };
+  const initialSystemMessage = {
+    role: "system",
+    content: `You are helping me practice conversational german at the A1 level. 
+      Respond in json format with the following keys: 
+      content - your reply to my message,
+      translation - your reply in English,
+      formatted - previous user message with corrected punctuation`,
+  };
 
+  useEffect(() => {
     const chatHistory = window.localStorage.getItem("chatHistory");
     if (chatHistory) {
       setMessages(JSON.parse(chatHistory));
     } else {
-      setMessages([systemMessage]);
+      setMessages([initialSystemMessage]);
     }
     scrollToBottom();
 
@@ -43,6 +46,7 @@ function App() {
     const getChatGPTResponse = async () => {
       const GPTmessage = await openAIRequest(transcript);
       addMessage(GPTmessage);
+      playBackRecognition(GPTmessage.content);
     };
     if (messages.length > 0 && messages[messages.length - 1].role === "user") {
       getChatGPTResponse();
@@ -59,19 +63,21 @@ function App() {
   const addMessage = (message) => {
     const updatedMessage = [...messages, message];
     window.localStorage.setItem("chatHistory", JSON.stringify(updatedMessage));
-
     setMessages(updatedMessage);
-    playBackRecognition(message.content);
     scrollToBottom();
   };
 
   const scrollToBottom = () => {
-    console.log("scrolling to bottom");
     setTimeout(() => {
       const element = document.getElementById("listOfMessages");
       if (!element) return;
       element.scrollIntoView({ block: "end", behavior: "smooth" });
     }, 100);
+  };
+
+  const clearChat = () => {
+    localStorage.setItem("chatHistory", "");
+    setMessages([initialSystemMessage]);
   };
 
   const openAIRequest = async (message) => {
@@ -105,8 +111,9 @@ function App() {
       });
     } else {
       const userMessage = { role: "user", content: transcript };
+      resetTranscript();
       stopListening();
-      if (!transcript) return;
+      if (!transcript || transcript === "") return;
       addMessage(userMessage);
     }
   };
@@ -134,7 +141,12 @@ function App() {
 
   return (
     <div className="application">
-      <div className="container header">ChatGPT</div>
+      <div className="container header">
+        <div class="title">ChatGPT</div>
+        <div className="clear-chat-btn" onClick={clearChat}>
+          Clear chat
+        </div>
+      </div>
       <div className="container messages">
         {messages && (
           <div className="message-container" id="listOfMessages">
