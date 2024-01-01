@@ -13,13 +13,22 @@ function App() {
   const [messages, setMessages] = useState([]);
   const [utterance, setUtterance] = useState(null);
 
+  const responseInstructions = `
+    Respond with a valid JSON object following this format:
+
+    {"content": "your response to the user's message",
+    "translation": "your response to the user's message in English",
+    "formatted": "previous user's message with corrected punctuation"}
+
+    The JSON object:`;
+  const prompt = `
+    Help the user practice conversational German at the A1 level by responding to the users messages.
+    ${responseInstructions}
+    `.trim();
+
   const initialSystemMessage = {
     role: "system",
-    content: `You are helping me practice conversational german at the A1 level. 
-      Respond in json format with the following keys: 
-      content - your reply to my message,
-      translation - your reply in English,
-      formatted - previous user message with corrected punctuation`,
+    content: prompt,
   };
 
   useEffect(() => {
@@ -33,7 +42,7 @@ function App() {
 
     const utterance = new SpeechSynthesisUtterance();
     utterance.lang = "de";
-    utterance.rate = 0.8;
+    utterance.rate = 0.6;
     utterance.voice = window.speechSynthesis
       .getVoices()
       .filter((voice) => voice.lang.startsWith("de"))[0];
@@ -41,31 +50,6 @@ function App() {
 
     return () => console.log("unmounted");
   }, []);
-
-  useEffect(() => {
-    const getChatGPTResponse = async () => {
-      const GPTmessage = await openAIRequest(transcript);
-      addMessage(GPTmessage);
-      playBackRecognition(GPTmessage.content);
-    };
-    if (messages.length > 0 && messages[messages.length - 1].role === "user") {
-      getChatGPTResponse();
-    }
-  }, [messages]);
-
-  if (!SpeechRecognition.browserSupportsSpeechRecognition()) {
-    return (
-      <div className="mircophone-container">
-        Browser does not Support Speech Recognition.
-      </div>
-    );
-  }
-  const addMessage = (message) => {
-    const updatedMessage = [...messages, message];
-    window.localStorage.setItem("chatHistory", JSON.stringify(updatedMessage));
-    setMessages(updatedMessage);
-    scrollToBottom();
-  };
 
   const scrollToBottom = () => {
     setTimeout(() => {
@@ -81,6 +65,11 @@ function App() {
   };
 
   const openAIRequest = async (message) => {
+    const chatMessages = messages.map((msg) => {
+      const { role, content } = msg;
+      return { role, content };
+    });
+
     const body = JSON.stringify({
       model: "gpt-3.5-turbo",
       messages: [...messages, { role: "user", content: message }],
@@ -96,9 +85,29 @@ function App() {
     });
 
     const data = await res.json();
-
     const msg = data.choices[0].message;
-    return msg;
+    const { role, content } = msg;
+
+    try {
+      const response = { role, ...JSON.parse(content) };
+      return response;
+    } catch (err) {
+      return {
+        role,
+        content,
+        translation: "",
+        formatted: "",
+      };
+    }
+  };
+
+  const formatUserMessage = (userMessage, ChatGPTResponse) => {
+    if (ChatGPTResponse.role === "assistant" && ChatGPTResponse?.formatted) {
+      return {
+        ...userMessage,
+        formatted: ChatGPTResponse.formatted,
+      };
+    } else return userMessage;
   };
 
   const handleListening = async () => {
@@ -110,11 +119,34 @@ function App() {
         language: "de",
       });
     } else {
-      const userMessage = { role: "user", content: transcript };
+      let userMessage = {
+        role: "user",
+        content: transcript,
+        translation: "",
+        formatted: "",
+      };
       resetTranscript();
       stopListening();
       if (!transcript || transcript === "") return;
-      addMessage(userMessage);
+
+      setMessages((prev) => [...prev, userMessage]);
+
+      const GPTmessage = await openAIRequest(transcript);
+      const formattedUserMessage = formatUserMessage(userMessage, GPTmessage);
+      window.localStorage.setItem(
+        "chatHistory",
+        JSON.stringify([...messages, formattedUserMessage, GPTmessage])
+      );
+
+      // Replace last user message with formatted version
+      setMessages((prev) => [
+        ...prev.slice(0, prev.length - 1),
+        formattedUserMessage,
+        GPTmessage,
+      ]);
+
+      scrollToBottom();
+      playBackRecognition(GPTmessage.content);
     }
   };
 
@@ -130,10 +162,15 @@ function App() {
 
   const messagesList = messages.map((msg) => {
     if (msg.role !== "system") {
+      let message = msg.content;
+      if (msg.role === "user" && msg.formatted !== "") {
+        message = msg.formatted;
+      }
       return (
         <ChatBubble
           alignment={msg.role === "assistant" ? "left" : "right"}
-          text={msg.content}
+          message={message}
+          translation={msg.translation}
         />
       );
     }
@@ -142,7 +179,7 @@ function App() {
   return (
     <div className="application">
       <div className="container header">
-        <div class="title">ChatGPT</div>
+        <div className="title">ChatGPT</div>
         <div className="clear-chat-btn" onClick={clearChat}>
           Clear chat
         </div>
