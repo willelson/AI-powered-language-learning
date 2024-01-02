@@ -14,21 +14,17 @@ function App() {
   const [utterance, setUtterance] = useState(null);
 
   const responseInstructions = `
-    Respond with a valid JSON object following this format:
+    Respond with a JSON object following this format.
 
-    {"content": "your response to the user's message",
-    "translation": "your response to the user's message in English",
-    "formatted": "previous user's message with corrected punctuation"}
-
-    The JSON object:`;
-  const prompt = `
-    Help the user practice conversational German at the A1 level by responding to the users messages.
-    ${responseInstructions}
-    `.trim();
+    {
+      "content": "your response to my message",
+      "translation": "your response translated to English",
+      "formatted": "previous user's message with corrected punctuation"
+    }`;
 
   const initialSystemMessage = {
     role: "system",
-    content: prompt,
+    content: `Help me practice conversational German at the A1 level. Use vocabulary and phrases suitable for this level. \n${responseInstructions}`,
   };
 
   useEffect(() => {
@@ -71,8 +67,11 @@ function App() {
     });
 
     const body = JSON.stringify({
-      model: "gpt-3.5-turbo",
-      messages: [...messages, { role: "user", content: message }],
+      model: "gpt-3.5-turbo-1106",
+      messages: [...chatMessages, { role: "user", content: message }],
+      response_format: {
+        type: "json_object",
+      },
     });
 
     const res = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -115,7 +114,7 @@ function App() {
       setIsListening(true);
 
       SpeechRecognition.startListening({
-        continuous: false,
+        continuous: true,
         language: "de",
       });
     } else {

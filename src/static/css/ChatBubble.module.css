@@ -4,6 +4,7 @@
 
   max-width: 300px;
   padding: calc(2 * var(--r) / 3);
+  padding-top: calc(var(--r) / 3);
   -webkit-mask: radial-gradient(var(--t) at var(--_d) 0, #0000 98%, #000 102%)
       var(--_d) 100% / calc(100% - var(--r)) var(--t) no-repeat,
     conic-gradient(at var(--r) var(--r), #000 75%, #0000 0) calc(var(--r) / -2)
@@ -12,6 +13,7 @@
       padding-box;
   background: linear-gradient(135deg, #fe6d00, #1384c5) border-box;
   color: #fff;
+  /* position: relative; */
 }
 .left {
   --_d: 0%;
@@ -24,4 +26,11 @@
   border-right: var(--t) solid #0000;
   margin-left: var(--t);
   place-self: end;
+}
+
+.controls {
+  display: flex;
+  gap: 8px;
+  padding-bottom: 4px;
+  justify-content: flex-end;
 }
